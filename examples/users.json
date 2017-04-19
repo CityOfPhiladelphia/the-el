@@ -1,0 +1,38 @@
+{
+    "primaryKey": "id",
+    "fields": [
+        {
+            "name": "id",
+            "type": "integer",
+            "constraints": {
+                "required": true
+            }
+        },
+        {
+            "name": "first_name",
+            "type": "string"
+        },
+        {
+            "name": "last_name",
+            "type": "string"
+        },
+        {
+            "name": "enabled",
+            "type": "boolean"
+        },
+        {
+            "name": "score",
+            "type": "number"
+        },
+        {
+            "name": "created_at",
+            "type": "datetime",
+            "format": "fmt:%Y-%m-%d %H:%M:%S"
+        },
+        {
+            "name": "updated_at",
+            "type": "datetime",
+            "format": "fmt:%Y-%m-%d %H:%M:%S"
+        }
+    ]
+}
