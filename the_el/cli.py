@@ -88,8 +88,6 @@ def write(table_name, table_schema_path, connection_string, input_file, db_schem
         table_schema = get_table_schema(table_schema_path)
         storage.describe(table_name, descriptor=table_schema)
 
-    print(storage.describe(table_name))
-
     ## TODO: skip csv header?
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
