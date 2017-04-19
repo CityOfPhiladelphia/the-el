@@ -1,5 +1,5 @@
 {
-    "primaryKey": "id",
+    "primaryKey": ["id"],
     "fields": [
         {
             "name": "id",
