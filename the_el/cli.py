@@ -20,7 +20,7 @@ def get_connection_string(connection_string):
 
 def create_storage_adaptor(connection_string, db_schema, geometry_support):
     engine = create_engine(connection_string)
-    storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support)
+    storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support, views=True)
     return storage
 
 def fopen(file, mode='r'):
