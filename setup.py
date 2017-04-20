@@ -10,6 +10,7 @@ setup(
         'boto3==1.4.4',
         'click==6.7',
         'sqlalchemy>=1.0,<2.0a',
+        'smart_open==1.5.2',
     ],
     entry_points={
         'console_scripts': [
