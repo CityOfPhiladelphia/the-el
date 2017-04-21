@@ -88,7 +88,6 @@ def write(table_name, table_schema_path, connection_string, input_file, db_schem
         table_schema = get_table_schema(table_schema_path)
         storage.describe(table_name, descriptor=table_schema)
 
-    ## TODO: skip csv header?
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
     with fopen(input_file) as file:
@@ -106,10 +105,14 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
 
     storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
 
-    ## TODO: csv header?
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
     with fopen(output_file, mode='w') as file:
         writer = csv.writer(file)
+
+        descriptor = storage.describe(table_name)
+        fields = map(lambda x: x['name'], descriptor['fields'])
+        writer.writerow(fields)
+
         for row in storage.iter(table_name):
             writer.writerow(row)
