@@ -77,7 +77,14 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
 @click.option('-f','--input-file')
 @click.option('--db-schema')
 @click.option('--geometry-support')
-def write(table_name, table_schema_path, connection_string, input_file, db_schema, geometry_support):
+@click.option('--skip-headers', is_flag=True)
+def write(table_name,
+          table_schema_path,
+          connection_string,
+          input_file,
+          db_schema,
+          geometry_support,
+          skip_headers):
     connection_string = get_connection_string(connection_string)
 
     table_schema = get_table_schema(table_schema_path)
@@ -92,6 +99,8 @@ def write(table_name, table_schema_path, connection_string, input_file, db_schem
     ## TODO: support line delimted json?
     with fopen(input_file) as file:
         rows = csv.reader(file)
+        if skip_headers:
+            next(rows)
         storage.write(table_name, rows) # ?? as_generator=True
 
 @main.command()
