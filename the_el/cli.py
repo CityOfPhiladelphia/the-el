@@ -8,6 +8,8 @@ from sqlalchemy import create_engine
 from jsontableschema_sql import Storage
 from smart_open import smart_open
 
+from .postgres import copy_from
+
 @click.group()
 def main():
     pass
@@ -21,7 +23,7 @@ def get_connection_string(connection_string):
 def create_storage_adaptor(connection_string, db_schema, geometry_support):
     engine = create_engine(connection_string)
     storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support, views=True)
-    return storage
+    return engine, storage
 
 def fopen(file, mode='r'):
     if file == None:
@@ -45,7 +47,7 @@ def get_table_schema(table_schema_path):
 def describe_table(table_name, connection_string, output_file, db_schema, geometry_support):
     connection_string = get_connection_string(connection_string)
 
-    storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
+    engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
     descriptor = storage.describe(table_name)
 
     with fopen(output_file, 'w') as file:
@@ -61,7 +63,7 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
 def create_table(table_name, table_schema_path, connection_string, db_schema, indexes_fields, geometry_support):
     connection_string = get_connection_string(connection_string)
 
-    storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
+    engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
 
     table_schema = get_table_schema(table_schema_path)
 
@@ -89,7 +91,7 @@ def write(table_name,
 
     table_schema = get_table_schema(table_schema_path)
 
-    storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
+    engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
 
     if table_schema_path != None:
         table_schema = get_table_schema(table_schema_path)
@@ -101,7 +103,11 @@ def write(table_name,
         rows = csv.reader(file)
         if skip_headers:
             next(rows)
-        storage.write(table_name, rows) # ?? as_generator=True
+
+        if engine.dialect.driver == 'psycopg2':
+            copy_from(engine, table_name, table_schema, rows)
+        else:
+            storage.write(table_name, rows)
 
 @main.command()
 @click.argument('table_name')
@@ -112,7 +118,7 @@ def write(table_name,
 def read(table_name, connection_string, output_file, db_schema, geometry_support):
     connection_string = get_connection_string(connection_string)
 
-    storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
+    engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
