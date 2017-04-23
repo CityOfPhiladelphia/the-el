@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from jsontableschema_sql import Storage
 from smart_open import smart_open
 
-from .postgres import copy_from
+from .postgres import copy_from, copy_to
 
 @click.group()
 def main():
@@ -129,5 +129,8 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
         fields = map(lambda x: x['name'], descriptor['fields'])
         writer.writerow(fields)
 
-        for row in storage.iter(table_name):
-            writer.writerow(row)
+        if engine.dialect.driver == 'psycopg2':
+            copy_to(engine, table_name, file)
+        else:
+            for row in storage.iter(table_name):
+                writer.writerow(row)

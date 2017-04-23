@@ -46,3 +46,10 @@ def copy_from(engine, table_name, table_schema, rows):
         cur.copy_expert(copy, transformed_rows)
         conn.commit()
     conn.close()
+
+def copy_to(engine, table_name, file):
+    conn = engine.raw_connection()
+    with conn.cursor() as cur:
+        copy = 'COPY {} TO STDOUT WITH CSV'.format(table_name)
+        cur.copy_expert(copy, file)
+    conn.close()
