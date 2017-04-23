@@ -104,7 +104,7 @@ def write(table_name,
         if skip_headers:
             next(rows)
 
-        if engine.dialect.driver == 'psycopg2':
+        if geometry_support == None and engine.dialect.driver == 'psycopg2':
             copy_from(engine, table_name, table_schema, rows)
         else:
             storage.write(table_name, rows)
@@ -129,7 +129,7 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
         fields = map(lambda x: x['name'], descriptor['fields'])
         writer.writerow(fields)
 
-        if engine.dialect.driver == 'psycopg2':
+        if geometry_support == None and engine.dialect.driver == 'psycopg2':
             copy_to(engine, table_name, file)
         else:
             for row in storage.iter(table_name):
