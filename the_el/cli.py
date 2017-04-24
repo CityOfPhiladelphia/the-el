@@ -134,3 +134,28 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
         else:
             for row in storage.iter(table_name):
                 writer.writerow(row)
+
+@main.command()
+@click.argument('new_table_name')
+@click.argument('old_table_name')
+@click.option('--connection-string')
+@click.option('--db-schema')
+def swap_table(new_table_name, old_table_name, connection_string, db_schema):
+    connection_string = get_connection_string(connection_string)
+    engine = create_engine(connection_string)
+ 
+    if engine.dialect.driver == 'psycopg2':
+        conn = engine.raw_connection()
+        try:
+            with conn.cursor() as cur:
+                sql = 'ALTER TABLE "{}" RENAME TO "{}_old";'.format(old_table_name, old_table_name) +\
+                      'ALTER TABLE "{}" RENAME TO "{}";'.format(new_table_name, old_table_name) +\
+                      'DROP TABLE "{}_old";'.format(old_table_name)
+                cur.execute(sql)
+            conn.commit()
+        except:
+            conn.rollback()
+            raise
+        conn.close()
+    else:
+        raise Exception('`{}` not supported by swap_table'.format(engine.dialect.driver))
