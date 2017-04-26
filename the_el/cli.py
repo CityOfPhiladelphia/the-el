@@ -2,6 +2,7 @@ import json
 import csv
 import sys
 import os
+import re
 
 import click
 from sqlalchemy import create_engine
@@ -9,6 +10,7 @@ from jsontableschema_sql import Storage
 from smart_open import smart_open
 
 from .postgres import copy_from, copy_to
+from . import carto 
 
 @click.group()
 def main():
@@ -61,11 +63,14 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
 @click.option('--indexes-fields')
 @click.option('--geometry-support')
 def create_table(table_name, table_schema_path, connection_string, db_schema, indexes_fields, geometry_support):
+    table_schema = get_table_schema(table_schema_path)
+
+    if re.match(carto.carto_connection_string_regex, connection_string) != None:
+        return carto.create_table(table_name, table_schema, connection_string)
+
     connection_string = get_connection_string(connection_string)
 
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
-
-    table_schema = get_table_schema(table_schema_path)
 
     if indexes_fields != None:
         indexes_fields = indexes_fields.split(',')
@@ -87,15 +92,7 @@ def write(table_name,
           db_schema,
           geometry_support,
           skip_headers):
-    connection_string = get_connection_string(connection_string)
-
     table_schema = get_table_schema(table_schema_path)
-
-    engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
-
-    if table_schema_path != None:
-        table_schema = get_table_schema(table_schema_path)
-        storage.describe(table_name, descriptor=table_schema)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
@@ -104,10 +101,26 @@ def write(table_name,
         if skip_headers:
             next(rows)
 
-        if geometry_support == None and engine.dialect.driver == 'psycopg2':
-            copy_from(engine, table_name, table_schema, rows)
+        if re.match(carto.carto_connection_string_regex, connection_string) != None:
+            with fopen(input_file) as file:
+                rows = csv.reader(file)
+                if skip_headers:
+                    next(rows)
+
+                carto.load(db_schema, table_name, table_schema, connection_string, rows)
         else:
-            storage.write(table_name, rows)
+            connection_string = get_connection_string(connection_string)
+
+            engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
+
+            if table_schema_path != None:
+                table_schema = get_table_schema(table_schema_path)
+                storage.describe(table_name, descriptor=table_schema)
+
+                if geometry_support == None and engine.dialect.driver == 'psycopg2':
+                    copy_from(engine, table_name, table_schema, rows)
+                else:
+                    storage.write(table_name, rows)
 
 @main.command()
 @click.argument('table_name')
@@ -141,6 +154,9 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
 @click.option('--connection-string')
 @click.option('--db-schema')
 def swap_table(new_table_name, old_table_name, connection_string, db_schema):
+    if re.match(carto.carto_connection_string_regex, connection_string) != None:
+        return carto.swap_table(db_schema, new_table_name, old_table_name, connection_string)
+
     connection_string = get_connection_string(connection_string)
     engine = create_engine(connection_string)
  
