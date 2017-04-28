@@ -76,6 +76,9 @@ def insert(creds, table, rows):
 def cartodbfytable(creds, db_schema, table_name):
     carto_sql_call(creds, "select cdb_cartodbfytable('{}', '{}');".format(db_schema, table_name))
 
+def vacuum_analyze(creds, table_name):
+    carto_sql_call(creds, "VACUUM ANALYZE {};".format(table_name))
+
 def load(db_schema, table_name, json_table_schema, connection_string, rows, batch_size=500):
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     table = get_table(table_name, json_table_schema)
@@ -92,3 +95,4 @@ def load(db_schema, table_name, json_table_schema, connection_string, rows, batc
         insert(creds, table, _buffer)
 
     cartodbfytable(creds, db_schema, table_name) ## TODO: move to beginning of swap_table?
+    vacuum_analyze(creds, table_name)

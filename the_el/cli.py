@@ -38,7 +38,7 @@ def fopen(file, mode='r'):
 
 def get_table_schema(table_schema_path):
     with fopen(table_schema_path) as file:
-        return json.load(file)
+        return json.loads(file.read().decode('utf-8'))
 
 @main.command()
 @click.argument('table_name')
