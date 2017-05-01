@@ -8,6 +8,7 @@ import click
 from sqlalchemy import create_engine
 from jsontableschema_sql import Storage
 from smart_open import smart_open
+import boto3
 
 from .postgres import copy_from, copy_to
 from . import carto 
@@ -34,6 +35,16 @@ def fopen(file, mode='r'):
         elif mode == 'w':
             return sys.stdout
     else:
+        # HACK: get boto working with instance credentials via boto3
+        match = re.match(r'^s3://(.+)/(.+)', file)
+        if match != None:
+            client = boto3.client('s3')
+            s3_connection = boto.connect_s3(
+                aws_access_key_id=client._request_signer._credentials.access_key,
+                aws_secret_access_key=client._request_signer._credentials.secret_key,
+                security_token=client._request_signer._credentials.token)
+            bucket = s3_connection.get_bucket(match.groups()[0])
+            file = bucket.get_key(match.groups()[1])
         return smart_open(file, mode=mode)
 
 def get_table_schema(table_schema_path):
