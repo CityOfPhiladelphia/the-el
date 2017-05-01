@@ -38,7 +38,10 @@ def fopen(file, mode='r'):
     else:
         # HACK: get boto working with instance credentials via boto3
         match = re.match(r'^s3://(.+)/(.+)', file)
+        print(match)
         if match != None:
+            print(match.groups()[0])
+            print(match.groups()[1])
             client = boto3.client('s3')
             s3_connection = boto.connect_s3(
                 aws_access_key_id=client._request_signer._credentials.access_key,
