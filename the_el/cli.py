@@ -10,6 +10,7 @@ from jsontableschema_sql import Storage
 from smart_open import smart_open
 import boto3
 import boto
+from boto.s3.key import Key
 
 from .postgres import copy_from, copy_to
 from . import carto 
@@ -45,7 +46,8 @@ def fopen(file, mode='r'):
                 aws_secret_access_key=client._request_signer._credentials.secret_key,
                 security_token=client._request_signer._credentials.token)
             bucket = s3_connection.get_bucket(match.groups()[0])
-            file = bucket.get_key(match.groups()[1])
+            file = Key(bucket)
+            file.key = match.groups()[1]
         return smart_open(file, mode=mode)
 
 def get_table_schema(table_schema_path):
