@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from jsontableschema_sql import Storage
 from smart_open import smart_open
 import boto3
+import boto
 
 from .postgres import copy_from, copy_to
 from . import carto 
