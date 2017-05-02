@@ -48,9 +48,9 @@ def fopen(file, mode='r'):
                 security_token=client._request_signer._credentials.token)
             bucket = s3_connection.get_bucket(match.groups()[0])
             if mode == 'w':
-                file = bucket.get_key(file, validate=False)
+                file = bucket.get_key(match.groups()[1], validate=False)
             else:
-                file = bucket.get_key(file)
+                file = bucket.get_key(match.groups()[1])
         return smart_open(file, mode=mode)
 
 def get_table_schema(table_schema_path):
