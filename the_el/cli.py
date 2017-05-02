@@ -47,10 +47,10 @@ def fopen(file, mode='r'):
                 aws_secret_access_key=client._request_signer._credentials.secret_key,
                 security_token=client._request_signer._credentials.token)
             bucket = s3_connection.get_bucket(match.groups()[0])
-            file = Key(bucket)
-            file.key = match.groups()[1]
-            if mode == 'r':
-                return codecs.iterdecode(smart_open(file, mode=mode), 'utf-8')
+            if mode == 'w':
+                file = bucket.get_key(parsed_uri.key_id, validate=False)
+            else:
+                file = bucket.get_key(parsed_uri.key_id)
         return smart_open(file, mode=mode)
 
 def get_table_schema(table_schema_path):
