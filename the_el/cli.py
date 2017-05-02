@@ -31,6 +31,8 @@ def create_storage_adaptor(connection_string, db_schema, geometry_support):
     storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support, views=True)
     return engine, storage
 
+s3_regex = r'^s3://([^/]+)/(.+)'
+
 def fopen(file, mode='r'):
     if file == None:
         if mode == 'r':
@@ -39,7 +41,7 @@ def fopen(file, mode='r'):
             return sys.stdout
     else:
         # HACK: get boto working with instance credentials via boto3
-        match = re.match(r'^s3://([^/]+)/(.+)', file)
+        match = re.match(s3_regex, file)
         if match != None:
             client = boto3.client('s3')
             s3_connection = boto.connect_s3(
@@ -114,17 +116,16 @@ def write(table_name,
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
     with fopen(input_file) as file:
-        rows = csv.reader(file)
+        if re.match(s3_regex, input_file) != None:
+            rows = csv.reader(codecs.iterdecode(file, 'utf-8'))
+        else:
+            rows = csv.reader(file)
+
         if skip_headers:
             next(rows)
 
         if re.match(carto.carto_connection_string_regex, connection_string) != None:
-            with fopen(input_file) as file:
-                rows = csv.reader(file)
-                if skip_headers:
-                    next(rows)
-
-                carto.load(db_schema, table_name, table_schema, connection_string, rows)
+            carto.load(db_schema, table_name, table_schema, connection_string, rows)
         else:
             connection_string = get_connection_string(connection_string)
 
