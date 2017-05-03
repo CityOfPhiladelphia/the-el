@@ -57,7 +57,10 @@ def fopen(file, mode='r'):
 
 def get_table_schema(table_schema_path):
     with fopen(table_schema_path) as file:
-        return json.loads(file.read().decode('utf-8'))
+        contents = file.read()
+        if not isinstance(contents, str):
+             contents = contents.decode('utf-8')
+        return json.loads(contents)
 
 @main.command()
 @click.argument('table_name')
@@ -85,7 +88,8 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
     table_schema = get_table_schema(table_schema_path)
 
     if re.match(carto.carto_connection_string_regex, connection_string) != None:
-        return carto.create_table(table_name, table_schema, connection_string)
+        load_postgis = geometry_support == 'postgis'
+        return carto.create_table(table_name, load_postgis, table_schema, connection_string)
 
     connection_string = get_connection_string(connection_string)
 
@@ -125,7 +129,8 @@ def write(table_name,
             next(rows)
 
         if re.match(carto.carto_connection_string_regex, connection_string) != None:
-            carto.load(db_schema, table_name, table_schema, connection_string, rows)
+            load_postgis = geometry_support == 'postgis'
+            carto.load(db_schema, table_name, load_postgis, table_schema, connection_string, rows)
         else:
             connection_string = get_connection_string(connection_string)
 
@@ -164,7 +169,12 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
             copy_to(engine, table_name, file)
         else:
             for row in storage.iter(table_name):
-                writer.writerow(row)
+                row_out = []
+                for field in row:
+                    if isinstance(field, dict) or isinstance(field, list):
+                        field = json.dumps(field)
+                    row_out.append(field)
+                writer.writerow(row_out)
 
 @main.command()
 @click.argument('new_table_name')

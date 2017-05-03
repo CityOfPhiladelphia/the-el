@@ -9,6 +9,7 @@ from sqlalchemy.sql import literal_column
 from jsontableschema_sql.mappers import load_postgis_support, descriptor_to_columns_and_constraints
 import requests
 import jsontableschema
+import click
 
 carto_connection_string_regex = r'^carto://(.+):(.+)'
 
@@ -38,7 +39,10 @@ def carto_sql_call(creds, str_statement):
         print(str(response.status_code) + ': ' + response.text)
         raise
 
-def create_table(table_name, json_table_schema, connection_string):
+def create_table(table_name, load_postgis, json_table_schema, connection_string):
+    if load_postgis:
+        load_postgis_support()
+
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     statement = CreateTable(get_table(table_name, json_table_schema))
     str_statement = statement.compile(dialect=postgresql.dialect())
@@ -54,16 +58,29 @@ def swap_table(db_schema, new_table_name, old_table_name, connection_string):
     carto_sql_call(creds, sql)
 
 def type_fields(schema, row):
+    missing_values = []
+    if 'missingValues' in schema._Schema__descriptor:
+        missingValues = schema._Schema__descriptor['missingValues']
+
     typed_row = []
     for index, field in enumerate(schema.fields):
         value = row[index]
-        if field.type != 'geojson':
+        if field.type == 'geojson': ## TODO: nulls?
+            if value == '':
+                value = None
+            else:
+                value = literal_column("ST_GeomFromGeoJSON('{}')".format(value))
+        elif field.type == 'string' and 'None' not in missingValues and value == 'None':
+            value = 'None'
+        else:
             try:
                 value = field.cast_value(value)
             except InvalidObjectType:
                 value = json.loads(value)
         if isinstance(value, datetime):
             value = literal_column("'" + value.strftime('%Y-%m-%d %H:%M:%S') + "'")
+        if value is None:
+            value = literal_column('null')
         typed_row.append(value)
 
     return typed_row
@@ -79,7 +96,10 @@ def cartodbfytable(creds, db_schema, table_name):
 def vacuum_analyze(creds, table_name):
     carto_sql_call(creds, 'VACUUM ANALYZE "{}";'.format(table_name))
 
-def load(db_schema, table_name, json_table_schema, connection_string, rows, batch_size=500):
+def load(db_schema, table_name, load_postgis, json_table_schema, connection_string, rows, batch_size=500):
+    if load_postgis:
+        load_postgis_support()
+
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     table = get_table(table_name, json_table_schema)
     schema = jsontableschema.Schema(json_table_schema)
