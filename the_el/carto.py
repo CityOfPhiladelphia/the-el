@@ -60,7 +60,7 @@ def swap_table(db_schema, new_table_name, old_table_name, connection_string):
 def type_fields(schema, row):
     missing_values = []
     if 'missingValues' in schema._Schema__descriptor:
-        missingValues = schema._Schema__descriptor['missingValues']
+        missing_values = schema._Schema__descriptor['missingValues']
 
     typed_row = []
     for index, field in enumerate(schema.fields):
@@ -70,7 +70,7 @@ def type_fields(schema, row):
                 value = None
             else:
                 value = literal_column("ST_GeomFromGeoJSON('{}')".format(value))
-        elif field.type == 'string' and 'None' not in missingValues and value == 'None':
+        elif field.type == 'string' and 'None' not in missing_values and value == 'None':
             value = 'None'
         else:
             try:
