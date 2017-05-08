@@ -55,6 +55,7 @@ def swap_table(db_schema, new_table_name, old_table_name, connection_string):
           'ALTER TABLE "{}" RENAME TO "{}";'.format(new_table_name, old_table_name) +\
           'DROP TABLE "{}_old";'.format(old_table_name) +\
           'GRANT SELECT ON "{}" TO "publicuser";'.format(old_table_name) +\
+          'GRANT SELECT ON "{}" TO "tileuser";'.format(old_table_name) +\
           'COMMIT;'
     carto_sql_call(creds, sql)
 
