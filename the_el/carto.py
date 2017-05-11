@@ -23,7 +23,7 @@ def get_table(table_name, json_table_schema):
     constraints = []
     pk = json_table_schema.get('primaryKey', None)
     if pk is not None:
-        constraints.append(UniqueConstraint(*pk, name='uniq_' + '_'.join(pk)))
+        constraints.append(UniqueConstraint(*pk, name='uniq_' + table_name + '_' + '_'.join(pk)))
 
     return Table(table_name, metadata, *(columns+constraints+indexes))
 
