@@ -8,7 +8,7 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy.sql import literal_column
 from jsontableschema_sql.mappers import load_postgis_support, descriptor_to_columns_and_constraints
 import requests
-import jsontableschema
+import tableschema
 import click
 
 carto_connection_string_regex = r'^carto://(.+):(.+)'
@@ -104,7 +104,7 @@ def load(db_schema, table_name, load_postgis, json_table_schema, connection_stri
 
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     table = get_table(table_name, json_table_schema)
-    schema = jsontableschema.Schema(json_table_schema)
+    schema = tableschema.Schema(json_table_schema)
 
     _buffer = []
     for row in rows:

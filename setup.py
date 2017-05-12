@@ -11,6 +11,7 @@ setup(
         'click==6.7',
         'sqlalchemy>=1.0,<2.0a',
         'smart_open==1.5.2',
+        'tableschema==1.0.0a4'
     ],
     entry_points={
         'console_scripts': [
