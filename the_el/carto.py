@@ -8,7 +8,7 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy.sql import literal_column
 from jsontableschema_sql.mappers import load_postgis_support, descriptor_to_columns_and_constraints
 import requests
-import tableschema
+import jsontableschema
 import click
 
 carto_connection_string_regex = r'^carto://(.+):(.+)'
@@ -74,6 +74,8 @@ def type_fields(schema, row):
                 value = literal_column("ST_GeomFromGeoJSON('{}')".format(value))
         elif field.type == 'string' and 'None' not in missing_values and value == 'None':
             value = 'None'
+        elif field.type == 'string' and value.lower() == 'nan':
+            value = value # HACK: tableschema-py 1.0 fixes this but is not released yet
         else:
             try:
                 value = field.cast_value(value)
@@ -104,7 +106,7 @@ def load(db_schema, table_name, load_postgis, json_table_schema, connection_stri
 
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     table = get_table(table_name, json_table_schema)
-    schema = tableschema.Schema(json_table_schema)
+    schema = jsontableschema.Schema(json_table_schema)
 
     _buffer = []
     for row in rows:
