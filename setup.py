@@ -11,7 +11,11 @@ setup(
         'click==6.7',
         'sqlalchemy>=1.0,<2.0a',
         'smart_open==1.5.2',
-        'tableschema==1.0.0a4'
+        'tableschema==1.0.0a4',
+        'jsontableschema_sql==0.8.0',
+    ],
+    dependency_links=[
+        'https://github.com/CityOfPhiladelphia/jsontableschema-sql-py/tarball/master#egg=jsontableschema_sql-0.8.0'
     ],
     entry_points={
         'console_scripts': [
