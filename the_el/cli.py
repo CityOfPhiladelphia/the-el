@@ -26,9 +26,9 @@ def get_connection_string(connection_string):
         raise Exception('`CONNECTION_STRING` environment variable or `--connection-string` option required')
     return connection_string
 
-def create_storage_adaptor(connection_string, db_schema, geometry_support):
+def create_storage_adaptor(connection_string, db_schema, geometry_support, from_srid=None, to_srid=None):
     engine = create_engine(connection_string)
-    storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support, views=True)
+    storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support, from_srid=from_srid, to_srid=to_srid, views=True)
     return engine, storage
 
 s3_regex = r'^s3://([^/]+)/(.+)'
@@ -151,10 +151,12 @@ def write(table_name,
 @click.option('-o','--output-file')
 @click.option('--db-schema')
 @click.option('--geometry-support')
-def read(table_name, connection_string, output_file, db_schema, geometry_support):
+@click.option('--from-srid')
+@click.option('--to-srid')
+def read(table_name, connection_string, output_file, db_schema, geometry_support, from_srid, to_srid):
     connection_string = get_connection_string(connection_string)
 
-    engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
+    engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support, from_srid=from_srid, to_srid=to_srid)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
