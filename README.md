@@ -1,21 +1,28 @@
 # the-el
-Command-line tool wrapping [our fork][fork] of [jsontableschema_sql][jsontableschema_sql],
-which **e**xtracts and **l**oads SQL tables based on [JSON Table Schema][table schema] files.
+Command-line tool to **e**xtract and **l**oad SQL tables using a
+[JSON Table Schema][table schema]. Wraps [our fork][fork] of
+[jsontableschema_sql][jsontableschema_sql] and adds [Carto][carto]
+support.
 
 ## Usage
 ```bash
 # Extract a table to a CSV file
-the_el extract WASTE_BASKETS --schema GIS_STREETS --geometry-type oracle > waste_baskets.csv
+the_el read WASTE_BASKETS --db-schema GIS_STREETS --geometry-support sde-char --output-file waste_baskets.csv
 
 # Generate a JSON Table Schema file from a table
-the_el describe WASTE_BASKETS --schema GIS_STREETS > schema.json
+the_el describe_table WASTE_BASKETS --db-schema GIS_STREETS --geometry-support sde-char --output-file schema.json
 
 # Create a table using a JSON Table Schema file
-the_el create waste_baskets schema.json --schema phl
+the_el create_table waste_baskets_new schema.json --db-schema phl --geometry-support postgis
 
 # Load a CSV file into a table
-the_el load waste_baskets --schema phl --schema-file schema.json < waste_baskets.csv
+the_el write waste_baskets_new --db-schema phl --table-schema-path schema.json --geometry-support postgis --input-file waste_baskets.csv --skip-headers
+
+# Swap 2 tables
+the_el swap_table waste_baskets_new waste_baskets --db-schema phl
 ```
+_Note: Each command also requires a `--connection` parameter providing a
+connection string_
 
 ## Installation
 ```bash
@@ -25,3 +32,4 @@ pip install git+https://github.com/CityOfPhiladelphia/the-el.git#egg=the_el --pr
 [fork]: https://github.com/frictionlessdata/jsontableschema-sql-py/compare/master...CityOfPhiladelphia:master
 [jsontableschema_sql]: https://github.com/frictionlessdata/jsontableschema-sql-py
 [table schema]: http://frictionlessdata.io/guides/json-table-schema/
+[carto]: https://carto.com
