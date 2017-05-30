@@ -4,6 +4,8 @@ Command-line tool to **e**xtract and **l**oad SQL tables using a
 [jsontableschema_sql][jsontableschema_sql] and adds [Carto][carto]
 support.
 
+![vector art of market-frankford line structure](logo.png)
+
 ## Usage
 ```bash
 # Extract a table to a CSV file
