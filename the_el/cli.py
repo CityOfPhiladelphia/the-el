@@ -136,6 +136,8 @@ def write(table_name,
 
             engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
 
+            ## TODO: truncate? carto does. Makes this idempotent
+
             if table_schema_path != None:
                 table_schema = get_table_schema(table_schema_path)
                 storage.describe(table_name, descriptor=table_schema)

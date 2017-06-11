@@ -106,6 +106,9 @@ def cartodbfytable(creds, db_schema, table_name):
 def vacuum_analyze(creds, table_name):
     carto_sql_call(creds, 'VACUUM ANALYZE "{}";'.format(table_name))
 
+def truncate(creds, table_name):
+    carto_sql_call(creds, 'TRUNCATE TABLE "{}";'.format(table_name))
+
 def load(db_schema, table_name, load_postgis, json_table_schema, connection_string, rows, batch_size=500):
     if load_postgis:
         load_postgis_support()
@@ -113,6 +116,8 @@ def load(db_schema, table_name, load_postgis, json_table_schema, connection_stri
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     table = get_table(table_name, json_table_schema)
     schema = jsontableschema.Schema(json_table_schema)
+
+    truncate(creds, table_name)
 
     _buffer = []
     for row in rows:
@@ -124,5 +129,5 @@ def load(db_schema, table_name, load_postgis, json_table_schema, connection_stri
     if len(_buffer) > 0:
         insert(creds, table, _buffer)
 
-    cartodbfytable(creds, db_schema, table_name) ## TODO: move to beginning of swap_table?
+    cartodbfytable(creds, db_schema, table_name)
     vacuum_analyze(creds, table_name)
