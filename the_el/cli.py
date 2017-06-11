@@ -183,9 +183,14 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
 @click.argument('old_table_name')
 @click.option('--connection-string')
 @click.option('--db-schema')
-def swap_table(new_table_name, old_table_name, connection_string, db_schema):
+@click.option('--select-users', help='Users to grant SELECT on updated table')
+def swap_table(new_table_name, old_table_name, connection_string, db_schema, select_users):
     if re.match(carto.carto_connection_string_regex, connection_string) != None:
-        return carto.swap_table(db_schema, new_table_name, old_table_name, connection_string)
+        if select_users != None:
+            select_users = select_users.split(',')
+        else:
+            select_users = []
+        return carto.swap_table(db_schema, new_table_name, old_table_name, select_users, connection_string)
 
     connection_string = get_connection_string(connection_string)
     engine = create_engine(connection_string)

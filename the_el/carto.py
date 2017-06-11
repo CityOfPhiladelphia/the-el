@@ -9,6 +9,7 @@ from sqlalchemy.sql import literal_column
 from jsontableschema_sql.mappers import load_postgis_support, descriptor_to_columns_and_constraints
 import requests
 import jsontableschema
+from jsontableschema.exceptions import InvalidObjectType
 import click
 
 carto_connection_string_regex = r'^carto://(.+):(.+)'
@@ -48,14 +49,19 @@ def create_table(table_name, load_postgis, json_table_schema, connection_string)
     str_statement = statement.compile(dialect=postgresql.dialect())
     carto_sql_call(creds, str_statement)
 
-def swap_table(db_schema, new_table_name, old_table_name, connection_string):
+def generate_select_grants(table, users):
+    grants_sql = ''
+    for user in users:
+        grants_sql += 'GRANT SELECT ON "{}" TO "{}";'.format(table, user)
+    return grants_sql
+
+def swap_table(db_schema, new_table_name, old_table_name, select_users, connection_string):
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     sql = 'BEGIN;' +\
           'ALTER TABLE "{}" RENAME TO "{}_old";'.format(old_table_name, old_table_name) +\
           'ALTER TABLE "{}" RENAME TO "{}";'.format(new_table_name, old_table_name) +\
           'DROP TABLE "{}_old";'.format(old_table_name) +\
-          'GRANT SELECT ON "{}" TO "publicuser";'.format(old_table_name) +\
-          'GRANT SELECT ON "{}" TO "tileuser";'.format(old_table_name) +\
+          generate_select_grants(old_table_name, select_users) +\
           'COMMIT;'
     carto_sql_call(creds, sql)
 
