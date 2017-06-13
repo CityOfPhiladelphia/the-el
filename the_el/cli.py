@@ -14,7 +14,9 @@ import boto
 from boto.s3.key import Key
 
 from .postgres import copy_from, copy_to
-from . import carto 
+from . import carto
+
+csv.field_size_limit(sys.maxsize)
 
 @click.group()
 def main():
