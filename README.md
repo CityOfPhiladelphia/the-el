@@ -23,7 +23,7 @@ the_el write waste_baskets_new --db-schema phl --table-schema-path schema.json -
 # Swap 2 tables
 the_el swap_table waste_baskets_new waste_baskets --db-schema phl
 ```
-_Note: Each command also requires a `--connection` parameter providing a
+_Note: Each command also requires a `--connection-string` parameter providing a
 connection string_
 
 ## Installation
