@@ -9,9 +9,13 @@ setup(
     install_requires=[
         'boto3==1.4.4',
         'click==6.7',
-        'sqlalchemy>=1.0,<2.0a',
-        'smart_open==1.5.2',
+        'google-api-python-client==1.6.2',
+        'google-auth==1.0.1',
+        'google-auth-httplib2==0.0.2',
+        'jsontableschema-bigquery==0.4.3',
         'jsontableschema_sql==0.8.0',
+        'sqlalchemy>=1.0,<2.0a',
+        'smart_open==1.5.2'
     ],
     extras_require={
         'postgres': ['psycopg2==2.7.1'],

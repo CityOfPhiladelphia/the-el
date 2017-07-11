@@ -15,6 +15,7 @@ from boto.s3.key import Key
 
 from .postgres import copy_from, copy_to
 from . import carto
+from . import bigquery
 
 csv.field_size_limit(sys.maxsize)
 
@@ -92,6 +93,9 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
     if re.match(carto.carto_connection_string_regex, connection_string) != None:
         load_postgis = geometry_support == 'postgis'
         return carto.create_table(table_name, load_postgis, table_schema, connection_string)
+    elif re.match(bigquery.bigquery_connection_string_regex, connection_string) != None:
+        config = re.match(bigquery.bigquery_connection_string_regex, connection_string).groupdict()
+        return bigquery.create_table(config['project'], config['dataset'], table_name, table_schema)
 
     connection_string = get_connection_string(connection_string)
 
@@ -133,6 +137,9 @@ def write(table_name,
         if re.match(carto.carto_connection_string_regex, connection_string) != None:
             load_postgis = geometry_support == 'postgis'
             carto.load(db_schema, table_name, load_postgis, table_schema, connection_string, rows)
+        elif re.match(bigquery.bigquery_connection_string_regex, connection_string) != None:
+            config = re.match(bigquery.bigquery_connection_string_regex, connection_string).groupdict()
+            bigquery.write(config['project'], config['dataset'], table_name, table_schema, rows)
         else:
             connection_string = get_connection_string(connection_string)
 
@@ -214,3 +221,14 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
         conn.close()
     else:
         raise Exception('`{}` not supported by swap_table'.format(engine.dialect.driver))
+
+@main.command()
+@click.argument('table_name')
+@click.option('--connection-string')
+@click.option('--db-schema')
+def drop(table_name, connection_string, db_schema):
+    if re.match(bigquery.bigquery_connection_string_regex, connection_string) != None:
+        config = re.match(bigquery.bigquery_connection_string_regex, connection_string).groupdict()
+        bigquery.drop(config['project'], config['dataset'], table_name)
+    else:
+        raise Exception('Drop not supported')
