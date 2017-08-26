@@ -1,6 +1,7 @@
 import re
 import json
-from datetime import datetime
+from datetime import datetime, date
+from decimal import Decimal
 
 from sqlalchemy import *
 from sqlalchemy.dialects import postgresql
@@ -40,13 +41,17 @@ def carto_sql_call(creds, str_statement):
         print(str(response.status_code) + ': ' + response.text)
         raise
 
-def create_table(table_name, load_postgis, json_table_schema, connection_string):
+def create_table(table_name, load_postgis, json_table_schema, if_not_exists, connection_string):
     if load_postgis:
         load_postgis_support()
 
     creds = re.match(carto_connection_string_regex, connection_string).groups()
     statement = CreateTable(get_table(table_name, json_table_schema))
     str_statement = statement.compile(dialect=postgresql.dialect())
+
+    if if_not_exists:
+        str_statement = str(str_statement).replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS')
+
     carto_sql_call(creds, str_statement)
 
 def generate_select_grants(table, users):
@@ -73,8 +78,8 @@ def type_fields(schema, row):
     typed_row = []
     for index, field in enumerate(schema.fields):
         value = row[index]
-        if field.type == 'geojson': ## TODO: nulls?
-            if value == '':
+        if field.type == 'geojson':
+            if value in missing_values:
                 value = None
             else:
                 value = literal_column("ST_GeomFromGeoJSON('{}')".format(value))
@@ -87,10 +92,15 @@ def type_fields(schema, row):
                 value = field.cast_value(value)
             except InvalidObjectType:
                 value = json.loads(value)
+
         if isinstance(value, datetime):
             value = literal_column("'" + value.strftime('%Y-%m-%d %H:%M:%S') + "'")
+        elif isinstance(value, date):
+            value = literal_column("'" + value.strftime('%Y-%m-%d') + "'")
+
         if value is None:
             value = literal_column('null')
+
         typed_row.append(value)
 
     return typed_row

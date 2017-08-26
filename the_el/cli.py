@@ -86,12 +86,13 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
 @click.option('--db-schema')
 @click.option('--indexes-fields')
 @click.option('--geometry-support')
-def create_table(table_name, table_schema_path, connection_string, db_schema, indexes_fields, geometry_support):
+@click.option('--if-not-exists', is_flag=True, default=False)
+def create_table(table_name, table_schema_path, connection_string, db_schema, indexes_fields, geometry_support, if_not_exists):
     table_schema = get_table_schema(table_schema_path)
 
     if re.match(carto.carto_connection_string_regex, connection_string) != None:
         load_postgis = geometry_support == 'postgis'
-        return carto.create_table(table_name, load_postgis, table_schema, connection_string)
+        return carto.create_table(table_name, load_postgis, table_schema, if_not_exists, connection_string)
 
     connection_string = get_connection_string(connection_string)
 
