@@ -1,7 +1,6 @@
 import re
 import json
-from datetime import datetime, date
-from decimal import Decimal
+from datetime import datetime
 
 from sqlalchemy import *
 from sqlalchemy.dialects import postgresql
@@ -78,8 +77,8 @@ def type_fields(schema, row):
     typed_row = []
     for index, field in enumerate(schema.fields):
         value = row[index]
-        if field.type == 'geojson':
-            if value in missing_values:
+        if field.type == 'geojson': ## TODO: nulls?
+            if value == '':
                 value = None
             else:
                 value = literal_column("ST_GeomFromGeoJSON('{}')".format(value))
@@ -95,8 +94,6 @@ def type_fields(schema, row):
 
         if isinstance(value, datetime):
             value = literal_column("'" + value.strftime('%Y-%m-%d %H:%M:%S') + "'")
-        elif isinstance(value, date):
-            value = literal_column("'" + value.strftime('%Y-%m-%d') + "'")
 
         if value is None:
             value = literal_column('null')
