@@ -213,5 +213,21 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
             conn.rollback()
             raise
         conn.close()
+    elif engine.dialect.driver == 'cx_oracle':
+        conn = engine.connect()
+        if select_users != None:
+            select_users = select_users.split(',')
+        else:
+            select_users = []
+        grants_sql = []
+        for user in select_users:
+            grants_sql.append('GRANT SELECT ON {} TO {}'.format(old_table_name, user.strip()))
+            #        conn.execute('SELECT GRANTEE FROM TABLE_PRIVILEGES WHERE TABLE_NAME = {}'.format(old_table_name))
+        sql1 = 'ALTER TABLE {} RENAME TO {}'.format(old_table_name, old_table_name + '_old')
+        sql2 = 'ALTER TABLE {} RENAME TO {}'.format(new_table_name, old_table_name)
+        sql3 = 'DROP TABLE {}_old'.format(old_table_name)
+        stmts = [sql1, sql2, sql3] + grants_sql
+        for sql in stmts:
+            conn.execute(sql)
     else:
         raise Exception('`{}` not supported by swap_table'.format(engine.dialect.driver))
