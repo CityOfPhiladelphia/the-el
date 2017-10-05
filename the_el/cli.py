@@ -215,7 +215,6 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
         conn.close()
     elif engine.dialect.driver == 'cx_oracle':
         conn = engine.connect()
-        # conn.execute('SELECT GRANTEE FROM TABLE_PRIVILEGES WHERE TABLE_NAME = {}'.format(old_table_name))
         if select_users != None:
             select_users = select_users.split(',')
         else:
