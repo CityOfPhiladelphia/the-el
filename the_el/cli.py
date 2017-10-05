@@ -215,6 +215,7 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
         conn.close()
     elif engine.dialect.driver == 'cx_oracle':
         conn = engine.connect()
+        # conn.execute('SELECT GRANTEE FROM TABLE_PRIVILEGES WHERE TABLE_NAME = {}'.format(old_table_name))
         if select_users != None:
             select_users = select_users.split(',')
         else:
@@ -222,12 +223,38 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
         grants_sql = []
         for user in select_users:
             grants_sql.append('GRANT SELECT ON {} TO {}'.format(old_table_name, user.strip()))
-            #        conn.execute('SELECT GRANTEE FROM TABLE_PRIVILEGES WHERE TABLE_NAME = {}'.format(old_table_name))
-        sql1 = 'ALTER TABLE {} RENAME TO {}'.format(old_table_name, old_table_name + '_old')
+
+        # Oracle does not allow table modification within a transaction, so make individual transactions:
+        sql1 = 'ALTER TABLE {} RENAME TO {}_old'.format(old_table_name, old_table_name)
         sql2 = 'ALTER TABLE {} RENAME TO {}'.format(new_table_name, old_table_name)
         sql3 = 'DROP TABLE {}_old'.format(old_table_name)
-        stmts = [sql1, sql2, sql3] + grants_sql
-        for sql in stmts:
-            conn.execute(sql)
+
+        try:
+            conn.execute(sql1)
+        except:
+            print("Could not rename {} table. Does it exist?".format(old_table_name))
+            raise
+        try:
+            conn.execute(sql2)
+        except:
+            print("Could not rename {} table. Does it exist?".format(new_table_name))
+            rb_sql = 'ALTER TABLE {}_old RENAME TO {}'.format(old_table_name, old_table_name)
+            conn.execute(rb_sql)
+            raise
+        try:
+            conn.execute(sql3)
+        except:
+            print("Could not drop {}_old table. Do you have permission?".format(old_table_name))
+            rb_sql1 = 'DROP TABLE {}'.format(old_table_name)
+            conn.execute(rb_sql1)
+            rb_sql2 = 'ALTER TABLE {}_old RENAME TO {}'.format(old_table_name, old_table_name)
+            conn.execute(rb_sql2)
+            raise
+        try:
+            for sql in grants_sql:
+                conn.execute(sql)
+        except:
+            print("Could not grant all permissions to {}.".format(old_table_name))
+            raise
     else:
         raise Exception('`{}` not supported by swap_table'.format(engine.dialect.driver))
