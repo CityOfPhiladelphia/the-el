@@ -110,6 +110,7 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
 @click.option('-f','--input-file')
 @click.option('--db-schema')
 @click.option('--geometry-support')
+@click.option('--from-srid')
 @click.option('--skip-headers', is_flag=True)
 def write(table_name,
           table_schema_path,
@@ -117,6 +118,7 @@ def write(table_name,
           input_file,
           db_schema,
           geometry_support,
+          from_srid,
           skip_headers):
     table_schema = get_table_schema(table_schema_path)
 
@@ -137,7 +139,7 @@ def write(table_name,
         else:
             connection_string = get_connection_string(connection_string)
 
-            engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
+            engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support, from_srid=from_srid)
 
             ## TODO: truncate? carto does. Makes this idempotent
 
