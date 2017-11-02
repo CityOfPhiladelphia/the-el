@@ -90,16 +90,16 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
 def create_table(table_name, table_schema_path, connection_string, db_schema, indexes_fields, geometry_support, if_not_exists):
     table_schema = get_table_schema(table_schema_path)
 
+    if indexes_fields != None:
+        indexes_fields = indexes_fields.split(',')
+
     if re.match(carto.carto_connection_string_regex, connection_string) != None:
         load_postgis = geometry_support == 'postgis'
-        return carto.create_table(table_name, load_postgis, table_schema, if_not_exists, connection_string)
+        return carto.create_table(table_name, load_postgis, table_schema, if_not_exists, indexes_fields, connection_string)
 
     connection_string = get_connection_string(connection_string)
 
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
-
-    if indexes_fields != None:
-        indexes_fields = indexes_fields.split(',')
 
     storage.create(table_name, table_schema, indexes_fields=indexes_fields)
 

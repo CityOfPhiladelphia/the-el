@@ -1,6 +1,6 @@
 import re
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy import *
 from sqlalchemy.dialects import postgresql
@@ -40,7 +40,7 @@ def carto_sql_call(creds, str_statement):
         print(str(response.status_code) + ': ' + response.text)
         raise
 
-def create_table(table_name, load_postgis, json_table_schema, if_not_exists, connection_string):
+def create_table(table_name, load_postgis, json_table_schema, if_not_exists, indexes_fields, connection_string):
     if load_postgis:
         load_postgis_support()
 
@@ -52,6 +52,12 @@ def create_table(table_name, load_postgis, json_table_schema, if_not_exists, con
         str_statement = str(str_statement).replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS')
 
     carto_sql_call(creds, str_statement)
+
+    if indexes_fields:
+        str_statement = ''
+        for indexes_field in indexes_fields:
+            str_statement += 'CREATE INDEX {table}_{field} ON "{table}" ("{field}");\n'.format(table=table_name, field=indexes_field)
+        carto_sql_call(creds, str_statement)
 
 def generate_select_grants(table, users):
     grants_sql = ''
@@ -77,8 +83,8 @@ def type_fields(schema, row):
     typed_row = []
     for index, field in enumerate(schema.fields):
         value = row[index]
-        if field.type == 'geojson': ## TODO: nulls?
-            if value == '':
+        if field.type == 'geojson':
+            if value == '' or value == 'NULL' or value == None:
                 value = None
             else:
                 value = literal_column("ST_GeomFromGeoJSON('{}')".format(value))
@@ -86,6 +92,11 @@ def type_fields(schema, row):
             value = 'None'
         elif field.type == 'string' and value.lower() == 'nan':
             value = value # HACK: tableschema-py 1.0 fixes this but is not released yet
+        elif field.type == 'array' or field.type == 'object':
+            if value in missing_values:
+                value = None
+            else:
+                value = literal_column('\'' + value + '\'::jsonb')
         else:
             try:
                 value = field.cast_value(value)
@@ -94,6 +105,8 @@ def type_fields(schema, row):
 
         if isinstance(value, datetime):
             value = literal_column("'" + value.strftime('%Y-%m-%d %H:%M:%S') + "'")
+        elif isinstance(value, date):
+            value = literal_column("'" + value.strftime('%Y-%m-%d') + "'")
 
         if value is None:
             value = literal_column('null')
