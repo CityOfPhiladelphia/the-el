@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='The El',
-    version='0.2.0',
+    version='0.2.1',
     packages=['the_el',],
     install_requires=[
         'boto3==1.4.4',
