@@ -112,6 +112,7 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
 @click.option('--geometry-support')
 @click.option('--from-srid')
 @click.option('--skip-headers', is_flag=True)
+@click.option('--indexes-fields')
 def write(table_name,
           table_schema_path,
           connection_string,
@@ -119,7 +120,8 @@ def write(table_name,
           db_schema,
           geometry_support,
           from_srid,
-          skip_headers):
+          skip_headers,
+          indexes_fields):
     table_schema = get_table_schema(table_schema_path)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
@@ -135,6 +137,10 @@ def write(table_name,
 
         if re.match(carto.carto_connection_string_regex, connection_string) != None:
             load_postgis = geometry_support == 'postgis'
+
+            if indexes_fields != None:
+                indexes_fields = indexes_fields.split(',')
+
             carto.load(db_schema, table_name, load_postgis, table_schema, connection_string, rows)
         else:
             connection_string = get_connection_string(connection_string)

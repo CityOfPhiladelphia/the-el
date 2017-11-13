@@ -40,6 +40,12 @@ def carto_sql_call(creds, str_statement):
         print(str(response.status_code) + ': ' + response.text)
         raise
 
+def create_indexes(creds, table_name, indexes_fields):
+    str_statement = ''
+    for indexes_field in indexes_fields:
+        str_statement += 'CREATE INDEX {table}_{field} ON "{table}" ("{field}");\n'.format(table=table_name, field=indexes_field)
+    carto_sql_call(creds, str_statement)
+
 def create_table(table_name, load_postgis, json_table_schema, if_not_exists, indexes_fields, connection_string):
     if load_postgis:
         load_postgis_support()
@@ -54,10 +60,7 @@ def create_table(table_name, load_postgis, json_table_schema, if_not_exists, ind
     carto_sql_call(creds, str_statement)
 
     if indexes_fields:
-        str_statement = ''
-        for indexes_field in indexes_fields:
-            str_statement += 'CREATE INDEX {table}_{field} ON "{table}" ("{field}");\n'.format(table=table_name, field=indexes_field)
-        carto_sql_call(creds, str_statement)
+        create_indexes(creds, table_name, indexes_fields)
 
 def generate_select_grants(table, users):
     grants_sql = ''
@@ -129,7 +132,7 @@ def vacuum_analyze(creds, table_name):
 def truncate(creds, table_name):
     carto_sql_call(creds, 'TRUNCATE TABLE "{}";'.format(table_name))
 
-def load(db_schema, table_name, load_postgis, json_table_schema, connection_string, rows, batch_size=500):
+def load(db_schema, table_name, load_postgis, json_table_schema, connection_string, rows, indexes_fields, batch_size=500):
     if load_postgis:
         load_postgis_support()
 
@@ -150,4 +153,8 @@ def load(db_schema, table_name, load_postgis, json_table_schema, connection_stri
         insert(creds, table, _buffer)
 
     cartodbfytable(creds, db_schema, table_name)
+
+    if indexes_fields:
+        create_indexes(creds, table_name, indexes_fields)
+
     vacuum_analyze(creds, table_name)
