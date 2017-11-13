@@ -141,7 +141,7 @@ def write(table_name,
             if indexes_fields != None:
                 indexes_fields = indexes_fields.split(',')
 
-            carto.load(db_schema, table_name, load_postgis, table_schema, connection_string, rows)
+            carto.load(db_schema, table_name, load_postgis, table_schema, connection_string, rows, indexes_fields)
         else:
             connection_string = get_connection_string(connection_string)
 
