@@ -158,7 +158,7 @@ def write(table_name,
                 storage.describe(table_name)
 
             if upsert:
-                postgres.upsert(engine, table_name, table_schema, rows)
+                postgres.upsert(engine, db_schema, table_name, table_schema, rows)
             elif geometry_support == None and engine.dialect.driver == 'psycopg2':
                 postgres.copy_from(engine, table_name, table_schema, rows)
             else:

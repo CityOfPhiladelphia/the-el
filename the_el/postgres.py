@@ -71,20 +71,24 @@ ON CONFLICT ({conflict_columns})
 DO UPDATE SET ({columns}) = ({params_str})
 '''
 
-def get_upsert_sql(table_name, primary_keys, columns):
+def get_upsert_sql(db_schema, table_name, primary_keys, columns):
+    if db_schema:
+        table_name = '{}.{}'.format(db_schema, table_name)
+
     return upsert_sql.format(
         table_name=table_name,
         columns=', '.join(columns),
         params_str=', '.join(['%s' for s in range(len(columns))]),
         conflict_columns=', '.join(primary_keys))
 
-def upsert(engine, table_name, table_schema, rows):
+def upsert(engine, db_schema, table_name, table_schema, rows):
     if 'primaryKey' not in table_schema:
         raise Exception('`primaryKey` required for upsert')
 
     schema = jsontableschema.Schema(table_schema)
 
     upsert_sql = get_upsert_sql(
+        db_schema,
         table_name,
         table_schema['primaryKey'],
         list(map(lambda x: x['name'], table_schema['fields'])))
