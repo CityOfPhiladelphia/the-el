@@ -9,11 +9,8 @@ import click
 from sqlalchemy import create_engine
 from jsontableschema_sql import Storage
 from smart_open import smart_open
-import boto3
-import boto
-from boto.s3.key import Key
 
-from .postgres import copy_from, copy_to
+from . import postgres
 from . import carto
 
 csv.field_size_limit(sys.maxsize)
@@ -42,19 +39,6 @@ def fopen(file, mode='r'):
         elif mode == 'w':
             return sys.stdout
     else:
-        # HACK: get boto working with instance credentials via boto3
-        match = re.match(s3_regex, file)
-        if match != None:
-            client = boto3.client('s3')
-            s3_connection = boto.connect_s3(
-                aws_access_key_id=client._request_signer._credentials.access_key,
-                aws_secret_access_key=client._request_signer._credentials.secret_key,
-                security_token=client._request_signer._credentials.token)
-            bucket = s3_connection.get_bucket(match.groups()[0])
-            if mode == 'w':
-                file = bucket.get_key(match.groups()[1], validate=False)
-            else:
-                file = bucket.get_key(match.groups()[1])
         return smart_open(file, mode=mode)
 
 def get_table_schema(table_schema_path):
@@ -76,7 +60,7 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
     descriptor = storage.describe(table_name)
 
-    with fopen(output_file, 'w') as file:
+    with fopen(output_file, mode='w') as file:
         json.dump(descriptor, file)
 
 @main.command()
@@ -113,6 +97,7 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
 @click.option('--from-srid')
 @click.option('--skip-headers', is_flag=True)
 @click.option('--indexes-fields')
+@click.option('--upsert', is_flag=True)
 def write(table_name,
           table_schema_path,
           connection_string,
@@ -121,7 +106,8 @@ def write(table_name,
           geometry_support,
           from_srid,
           skip_headers,
-          indexes_fields):
+          indexes_fields,
+          upsert):
     table_schema = get_table_schema(table_schema_path)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
@@ -152,11 +138,15 @@ def write(table_name,
             if table_schema_path != None:
                 table_schema = get_table_schema(table_schema_path)
                 storage.describe(table_name, descriptor=table_schema)
+            else:
+                storage.describe(table_name)
 
-                if geometry_support == None and engine.dialect.driver == 'psycopg2':
-                    copy_from(engine, table_name, table_schema, rows)
-                else:
-                    storage.write(table_name, rows)
+            if upsert:
+                postgres.upsert(engine, db_schema, table_name, table_schema, rows)
+            elif geometry_support == None and engine.dialect.driver == 'psycopg2':
+                postgres.copy_from(engine, table_name, table_schema, rows)
+            else:
+                storage.write(table_name, rows)
 
 @main.command()
 @click.argument('table_name')
@@ -181,7 +171,7 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
         writer.writerow(fields)
 
         if geometry_support == None and engine.dialect.driver == 'psycopg2':
-            copy_to(engine, table_name, file)
+            postgres.copy_to(engine, table_name, file)
         else:
             for row in storage.iter(table_name):
                 row_out = []
