@@ -30,8 +30,6 @@ def create_storage_adaptor(connection_string, db_schema, geometry_support, from_
     storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support, from_srid=from_srid, to_srid=to_srid, views=True)
     return engine, storage
 
-s3_regex = r'^s3://([^/]+)/(.+)'
-
 def fopen(file, mode='r'):
     if file == None:
         if mode == 'r':
@@ -113,10 +111,7 @@ def write(table_name,
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
     with fopen(input_file) as file:
-        if re.match(s3_regex, input_file) != None:
-            rows = csv.reader(codecs.iterdecode(file, 'utf-8'))
-        else:
-            rows = csv.reader(file)
+        rows = csv.reader(file)
 
         if skip_headers:
             next(rows)
