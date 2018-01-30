@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='The El',
-    version='0.2.7',
+    version='0.2.8',
     packages=['the_el',],
     install_requires=[
         'click==6.7',
