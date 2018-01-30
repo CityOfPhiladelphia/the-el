@@ -32,11 +32,11 @@ def create_storage_adaptor(connection_string, db_schema, geometry_support, from_
 
 s3_regex = r'^s3://([^/]+)/(.+)'
 
-def fopen(file, mode='rb'):
+def fopen(file, mode='r'):
     if file == None:
-        if mode == 'rb':
+        if mode == 'r':
             return sys.stdin
-        elif mode == 'wb':
+        elif mode == 'w':
             return sys.stdout
     else:
         return smart_open(file, mode=mode)
@@ -60,7 +60,7 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
     descriptor = storage.describe(table_name)
 
-    with fopen(output_file, mode='wb') as file:
+    with fopen(output_file, mode='w') as file:
         json.dump(descriptor, file)
 
 @main.command()
@@ -162,8 +162,8 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support, from_srid=from_srid, to_srid=to_srid)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
-    ## TODO: support line delimted json?
-    with fopen(output_file, mode='wb') as file:
+    ## TODO: support line delimited json?
+    with fopen(output_file, mode='w') as file:
         writer = csv.writer(file)
 
         descriptor = storage.describe(table_name)
