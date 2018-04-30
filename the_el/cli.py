@@ -12,9 +12,6 @@ import yaml
 from sqlalchemy import create_engine
 from jsontableschema_sql import Storage
 from smart_open import smart_open
-import boto3
-import boto
-from boto.s3.key import Key
 
 from . import postgres
 from . import carto
@@ -54,8 +51,6 @@ def create_storage_adaptor(connection_string, db_schema, geometry_support, from_
     storage = Storage(engine, dbschema=db_schema, geometry_support=geometry_support, from_srid=from_srid, to_srid=to_srid, views=True)
     return engine, storage
 
-s3_regex = r'^s3://([^/]+)/(.+)'
-
 def fopen(file, mode='r'):
     if file == None:
         if mode == 'r':
@@ -63,19 +58,6 @@ def fopen(file, mode='r'):
         elif mode == 'w':
             return sys.stdout
     else:
-        # HACK: get boto working with instance credentials via boto3
-        match = re.match(s3_regex, file)
-        if match != None:
-            client = boto3.client('s3')
-            s3_connection = boto.connect_s3(
-                aws_access_key_id=client._request_signer._credentials.access_key,
-                aws_secret_access_key=client._request_signer._credentials.secret_key,
-                security_token=client._request_signer._credentials.token)
-            bucket = s3_connection.get_bucket(match.groups()[0])
-            if mode == 'w':
-                file = bucket.get_key(match.groups()[1], validate=False)
-            else:
-                file = bucket.get_key(match.groups()[1])
         return smart_open(file, mode=mode)
 
 def get_table_schema(table_schema_path):
@@ -97,7 +79,7 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
     descriptor = storage.describe(table_name)
 
-    with fopen(output_file, 'w') as file:
+    with fopen(output_file, mode='w') as file:
         json.dump(descriptor, file)
 
 @main.command()
@@ -168,10 +150,7 @@ def write(table_name,
     ## TODO: csv settings? use Frictionless Data csv standard?
     ## TODO: support line delimted json?
     with fopen(input_file) as file:
-        if re.match(s3_regex, input_file) != None:
-            rows = csv.reader(codecs.iterdecode(file, 'utf-8'))
-        else:
-            rows = csv.reader(file)
+        rows = csv.reader(file)
 
         if skip_headers:
             next(rows)
@@ -232,7 +211,7 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support, from_srid=from_srid, to_srid=to_srid)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
-    ## TODO: support line delimted json?
+    ## TODO: support line delimited json?
     with fopen(output_file, mode='w') as file:
         writer = csv.writer(file)
 
