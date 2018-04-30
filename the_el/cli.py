@@ -245,14 +245,14 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
             select_users = select_users.split(',')
         else:
             select_users = []
-        logger.info('{} - Swapping tables using Carto: {} - {}'.format(new_table_name, old_table_name))
+        logger.info('Swapping tables using Carto: {} - {}'.format(new_table_name, old_table_name))
         return carto.swap_table(logger, db_schema, new_table_name, old_table_name, select_users, connection_string)
 
     connection_string = get_connection_string(connection_string)
     engine = create_engine(connection_string)
  
     if engine.dialect.driver == 'psycopg2':
-        logger.info('{} - Swapping tables using psycopg2: {} - {}'.format(new_table_name, old_table_name))
+        logger.info('Swapping tables using psycopg2: {} - {}'.format(new_table_name, old_table_name))
         conn = engine.raw_connection()
         try:
             with conn.cursor() as cur:
@@ -266,7 +266,7 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
             raise
         conn.close()
     elif engine.dialect.driver == 'cx_oracle':
-        logger.info('{} - Swapping tables using cx_Oracle: {} - {}'.format(new_table_name, old_table_name))
+        logger.info('Swapping tables using cx_Oracle: {} - {}'.format(new_table_name, old_table_name))
         conn = engine.connect()
         if select_users != None:
             select_users = select_users.split(',')
@@ -284,19 +284,19 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
         try:
             conn.execute(sql1)
         except:
-            print("Could not rename {} table. Does it exist?".format(old_table_name))
+            logger.error("Could not rename {} table. Does it exist?".format(old_table_name))
             raise
         try:
             conn.execute(sql2)
         except:
-            print("Could not rename {} table. Does it exist?".format(new_table_name))
+            logger.error("Could not rename {} table. Does it exist?".format(new_table_name))
             rb_sql = 'ALTER TABLE {}_old RENAME TO {}'.format(old_table_name, old_table_name)
             conn.execute(rb_sql)
             raise
         try:
             conn.execute(sql3)
         except:
-            print("Could not drop {}_old table. Do you have permission?".format(old_table_name))
+            logger.error("Could not drop {}_old table. Do you have permission?".format(old_table_name))
             rb_sql1 = 'DROP TABLE {}'.format(old_table_name)
             conn.execute(rb_sql1)
             rb_sql2 = 'ALTER TABLE {}_old RENAME TO {}'.format(old_table_name, old_table_name)
@@ -306,7 +306,7 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
             for sql in grants_sql:
                 conn.execute(sql)
         except:
-            print("Could not grant all permissions to {}.".format(old_table_name))
+            logger.error("Could not grant all permissions to {}.".format(old_table_name))
             raise
     else:
         raise Exception('`{}` not supported by swap_table'.format(engine.dialect.driver))

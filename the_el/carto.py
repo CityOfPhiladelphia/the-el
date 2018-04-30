@@ -155,7 +155,11 @@ def truncate(logger, creds, table_name):
 def verify_count(logger, creds, table_name, num_rows_expected, num_rows_inserted):
     data = carto_sql_call(logger, creds, 'SELECT count(*) FROM "{}";'.format(table_name))
     actual = data['rows'][0]['count']
-    message = '{} - row count - expected: {} actual: {}'.format(table_name, actual, actual)
+    message = '{} - row count - expected: {} inserted: {} actual: {}'.format(
+        table_name,
+        num_rows_expected,
+        num_rows_inserted,
+        actual)
     if actual != num_rows_expected:
         logger.error(message)
         raise Exception('Rows counted does not match - expected: {} inserted: {} actual: {}'.format(
@@ -207,7 +211,7 @@ def load(logger,
     if len(_buffer) > 0:
         insert(logger, creds, table, _buffer)
 
-    verify_count(logger, creds, table, num_rows_expected, num_rows_inserted)
+    verify_count(logger, creds, table, num_rows_expected, total_num_rows_inserted)
 
     cartodbfytable(logger, creds, db_schema, table_name)
 

@@ -18,7 +18,7 @@ the_el describe_table WASTE_BASKETS --db-schema GIS_STREETS --geometry-support s
 the_el create_table waste_baskets_new schema.json --db-schema phl --geometry-support postgis
 
 # Load a CSV file into a table
-the_el write waste_baskets_new --db-schema phl --table-schema-path schema.json --geometry-support postgis --input-file waste_baskets.csv --skip-headers
+the_el write waste_baskets_new --db-schema phl --table-schema-path schema.json --geometry-support postgis --input-file waste_baskets.csv --skip-headers --truncate
 
 # Swap 2 tables
 the_el swap_table waste_baskets_new waste_baskets --db-schema phl
