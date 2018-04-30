@@ -21,7 +21,7 @@ def type_fields(schema, row):
     typed_row = []
     for index, field in enumerate(schema.fields):
         value = row[index]
-        
+
         if value in missing_values:
                 value = None
         elif field.type != 'geojson':

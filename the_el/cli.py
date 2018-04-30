@@ -4,8 +4,11 @@ import sys
 import os
 import re
 import codecs
+import logging
+from logging.config import dictConfig
 
 import click
+import yaml
 from sqlalchemy import create_engine
 from jsontableschema_sql import Storage
 from smart_open import smart_open
@@ -17,6 +20,24 @@ from . import postgres
 from . import carto
 
 csv.field_size_limit(sys.maxsize)
+
+def get_logger(logging_config):
+    try:
+        with open(logging_config) as file:
+            config = yaml.load(file)
+        dictConfig(config)
+    except:
+        FORMAT = '[%(asctime)-15s] %(levelname)s [%(name)s] %(message)s'
+        logging.basicConfig(format=FORMAT, level=logging.INFO, stream=sys.stderr)
+
+    logger = logging.getLogger('the_el')
+
+    def exception_handler(type, value, tb):
+        logger.exception("Uncaught exception: {}".format(str(value)), exc_info=(type, value, tb))
+
+    sys.excepthook = exception_handler
+
+    return logger
 
 @click.group()
 def main():
@@ -87,7 +108,17 @@ def describe_table(table_name, connection_string, output_file, db_schema, geomet
 @click.option('--indexes-fields')
 @click.option('--geometry-support')
 @click.option('--if-not-exists', is_flag=True, default=False)
-def create_table(table_name, table_schema_path, connection_string, db_schema, indexes_fields, geometry_support, if_not_exists):
+@click.option('--logging-config', default='logging_config.conf')
+def create_table(table_name,
+                 table_schema_path,
+                 connection_string,
+                 db_schema,
+                 indexes_fields,
+                 geometry_support,
+                 if_not_exists,
+                 logging_config):
+    logger = get_logger(logging_config)
+
     table_schema = get_table_schema(table_schema_path)
 
     if indexes_fields != None:
@@ -95,12 +126,14 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
 
     if re.match(carto.carto_connection_string_regex, connection_string) != None:
         load_postgis = geometry_support == 'postgis'
-        return carto.create_table(table_name, load_postgis, table_schema, if_not_exists, indexes_fields, connection_string)
+        logger.info('{} - Creating table using Carto'.format(table_name))
+        return carto.create_table(logger, table_name, load_postgis, table_schema, if_not_exists, indexes_fields, connection_string)
 
     connection_string = get_connection_string(connection_string)
 
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support)
 
+    logger.info('{} - Creating table using SQLAlchemy'.format(table_name))
     storage.create(table_name, table_schema, indexes_fields=indexes_fields)
 
 @main.command()
@@ -114,6 +147,8 @@ def create_table(table_name, table_schema_path, connection_string, db_schema, in
 @click.option('--skip-headers', is_flag=True)
 @click.option('--indexes-fields')
 @click.option('--upsert', is_flag=True)
+@click.option('--truncate/--no-truncate', is_flag=True, default=False)
+@click.option('--logging-config', default='logging_config.conf')
 def write(table_name,
           table_schema_path,
           connection_string,
@@ -123,7 +158,11 @@ def write(table_name,
           from_srid,
           skip_headers,
           indexes_fields,
-          upsert):
+          upsert,
+          truncate,
+          logging_config):
+    logger = get_logger(logging_config)
+
     table_schema = get_table_schema(table_schema_path)
 
     ## TODO: csv settings? use Frictionless Data csv standard?
@@ -143,13 +182,25 @@ def write(table_name,
             if indexes_fields != None:
                 indexes_fields = indexes_fields.split(',')
 
-            carto.load(db_schema, table_name, load_postgis, table_schema, connection_string, rows, indexes_fields)
+            logger.info('{} - Writing to table using Carto'.format(table_name))
+
+            carto.load(logger,
+                       db_schema,
+                       table_name,
+                       load_postgis,
+                       table_schema,
+                       connection_string,
+                       rows,
+                       indexes_fields,
+                       truncate)
         else:
             connection_string = get_connection_string(connection_string)
 
             engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support, from_srid=from_srid)
 
             ## TODO: truncate? carto does. Makes this idempotent
+
+            logger.info('{} - Writing to table using SQLAlchemy'.format(table_name))
 
             if table_schema_path != None:
                 table_schema = get_table_schema(table_schema_path)
@@ -172,7 +223,10 @@ def write(table_name,
 @click.option('--geometry-support')
 @click.option('--from-srid')
 @click.option('--to-srid')
-def read(table_name, connection_string, output_file, db_schema, geometry_support, from_srid, to_srid):
+@click.option('--logging-config', default='logging_config.conf')
+def read(table_name, connection_string, output_file, db_schema, geometry_support, from_srid, to_srid, logging_config):
+    logger = get_logger(logging_config)
+
     connection_string = get_connection_string(connection_string)
 
     engine, storage = create_storage_adaptor(connection_string, db_schema, geometry_support, from_srid=from_srid, to_srid=to_srid)
@@ -203,18 +257,23 @@ def read(table_name, connection_string, output_file, db_schema, geometry_support
 @click.option('--connection-string')
 @click.option('--db-schema')
 @click.option('--select-users', help='Users to grant SELECT on updated table')
-def swap_table(new_table_name, old_table_name, connection_string, db_schema, select_users):
+@click.option('--logging-config', default='logging_config.conf')
+def swap_table(new_table_name, old_table_name, connection_string, db_schema, select_users, logging_config):
+    logger = get_logger(logging_config)
+
     if re.match(carto.carto_connection_string_regex, connection_string) != None:
         if select_users != None:
             select_users = select_users.split(',')
         else:
             select_users = []
-        return carto.swap_table(db_schema, new_table_name, old_table_name, select_users, connection_string)
+        logger.info('{} - Swapping tables using Carto: {} - {}'.format(new_table_name, old_table_name))
+        return carto.swap_table(logger, db_schema, new_table_name, old_table_name, select_users, connection_string)
 
     connection_string = get_connection_string(connection_string)
     engine = create_engine(connection_string)
  
     if engine.dialect.driver == 'psycopg2':
+        logger.info('{} - Swapping tables using psycopg2: {} - {}'.format(new_table_name, old_table_name))
         conn = engine.raw_connection()
         try:
             with conn.cursor() as cur:
@@ -228,6 +287,7 @@ def swap_table(new_table_name, old_table_name, connection_string, db_schema, sel
             raise
         conn.close()
     elif engine.dialect.driver == 'cx_oracle':
+        logger.info('{} - Swapping tables using cx_Oracle: {} - {}'.format(new_table_name, old_table_name))
         conn = engine.connect()
         if select_users != None:
             select_users = select_users.split(',')

@@ -12,6 +12,7 @@ setup(
         'sqlalchemy>=1.0,<2.0a',
         'smart_open==1.5.2',
         'jsontableschema_sql==0.8.0',
+        'PyYAML==3.12'
     ],
     extras_require={
         'postgres': ['psycopg2==2.7.1'],
